@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from dp import optim
@@ -34,7 +35,7 @@ class LinearNet(nn.Module):
         return x
 
 
-def train_model(model, num_epochs, num_batches, train_loader, logger):
+def train_model(model, loss_func, optimizer, num_epochs, num_batches, train_loader, logger):
     for epoch in range(num_epochs):
         t_loss = 0
         for i, (images, labels) in enumerate(train_loader):
@@ -44,12 +45,11 @@ def train_model(model, num_epochs, num_batches, train_loader, logger):
 
             # forward pass
             output = model(images)
-            loss = criterion(output, labels)
+            loss = loss_func(output, labels)
 
             # backpropagation and optimization
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            optimizer.step(loss)
 
             t_loss += loss.detach().cpu().numpy()
 
@@ -69,15 +69,16 @@ if __name__ == '__main__':
 
     lr = 1e-3
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    # do not reduce the loss by mean etc. and instead give the whole tensor
+    criterion = nn.CrossEntropyLoss(reduction='none')
+    optimizer = optim.SGD(model.named_parameters(), lr=lr)
 
     num_epochs = 4
     num_batches = len(train_loader)
 
     logger = {'loss': [], 'total_loss': []}
 
-    train_model(model, num_epochs, num_batches, train_loader, logger)
+    train_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, logger)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
