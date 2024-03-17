@@ -64,7 +64,7 @@ def train_dp_model(model, loss_func, optimizer, num_epochs, num_batches, train_l
 
 if __name__ == '__main__':
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
 
     # data loaders
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         root='data', download=True, train=False, transform=transforms.ToTensor())
 
     q = None # 0.01
-    lot_size = int(q * len(train_dataset)) if q is not None else 2000
+    lot_size = int(q * len(train_dataset)) if q is not None else 4000
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=lot_size, shuffle=True)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.DPSGD(model.named_parameters(), lot_size, lr=lr, noise_scale=2, max_grad_norm=4)
 
-    num_epochs = 4
+    num_epochs = 10
     num_batches = len(train_loader)
 
     logger = {'loss': [], 'total_loss': []}
