@@ -9,21 +9,6 @@ from torchvision import datasets, transforms
 
 from dp import optim
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
-
-# data loaders
-
-train_dataset = datasets.MNIST(
-    root='data', download=True, train=True, transform=transforms.ToTensor())
-test_dataset = datasets.MNIST(
-    root='data', download=True, train=False, transform=transforms.ToTensor())
-
-train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=128, shuffle=True)
-
-test_loader = torch.utils.data.DataLoader(
-    test_dataset, batch_size=512, shuffle=False)
-
 class LinearNet(nn.Module):
     def __init__(self, in_features=784):
         super().__init__()
@@ -65,13 +50,31 @@ def train_model(model, loss_func, optimizer, num_epochs, num_batches, train_load
 
 if __name__ == '__main__':
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
+
+    # data loaders
+
+    train_dataset = datasets.MNIST(
+        root='data', download=True, train=True, transform=transforms.ToTensor())
+    test_dataset = datasets.MNIST(
+        root='data', download=True, train=False, transform=transforms.ToTensor())
+
+    q = 0.01
+    lot_size = int(q * len(train_dataset)) if q is not None else 2000
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=lot_size, shuffle=True)
+
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, batch_size=lot_size, shuffle=False)
+
     model = LinearNet().to(device)
 
     lr = 1e-3
 
     # do not reduce the loss by mean etc. and instead give the whole tensor
-    criterion = nn.CrossEntropyLoss(reduction='none')
-    optimizer = optim.SGD(model.named_parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=lr)
 
     num_epochs = 4
     num_batches = len(train_loader)
