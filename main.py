@@ -1,79 +1,29 @@
-# import MNIST dataset
-
-import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import datasets, transforms
-from torch.func import functional_call, vmap, grad
 
-from dp import optim
+from torchvision import datasets, transforms
+
+import matplotlib.pyplot as plt
+
+from dp import optim, train_dp_model
 
 
 class LinearNet(nn.Module):
     def __init__(self, in_features=784):
         super().__init__()
-        self.fc = nn.Linear(in_features, 10)
+        self.hidden = nn.Linear(in_features, 1000)
+        self.fc = nn.Linear(1000, 10)
 
     def forward(self, x):
         x = x.flatten(start_dim=1)
+        x = F.relu(self.hidden(x))
         x = self.fc(x)
         return x
 
 
-def train_dp_model(model, loss_fn, optimizer, num_epochs, num_batches, train_loader, logger):
-    params = {k: v.detach() for k, v in model.named_parameters()}
-    buffers = {k: v.detach() for k, v in model.named_buffers()}
-
-    def compute_loss(params, buffers, sample, target):
-        batch = sample.unsqueeze(0)
-        targets = target.unsqueeze(0)
-
-        predictions = functional_call(model, (params, buffers), (batch,))
-        loss = loss_fn(predictions, targets)
-        return loss
-
-    ft_compute_grad = grad(compute_loss)
-    ft_compute_sample_grad = vmap(ft_compute_grad, in_dims=(None, None, 0, 0))
-
-    for epoch in range(num_epochs):
-        for i, (images, labels) in enumerate(train_loader):
-            total_loss = 0
-            total_acc = 0
-            # move images and labels to device
-            images = images.to(device)
-            labels = labels.to(device)
-
-            with torch.no_grad():
-                # forward pass
-                output = model(images)
-                # storing loss
-                # loss = loss_fn(output, labels)
-                # total_loss += loss.detach().cpu().numpy()
-
-                # storing accuracy
-                _, predicted = torch.max(output.data, 1)
-                accuracy = (predicted == labels).sum().item() / labels.size(0)
-                total_acc += accuracy
-
-            # backpropagation and optimization
-            optimizer.zero_grad()
-            ft_per_sample_grads = ft_compute_sample_grad(params, buffers, images, labels)
-            optimizer.step(ft_per_sample_grads)
-
-            # logging
-            if (i + 1) % 1 == 0:
-                print(f'Epoch {epoch + 1}/{num_epochs}, Step {i + 1}/{num_batches}, Train Acc: {accuracy:.4f}')
-
-            # logger['loss'].append(loss.detach().cpu().numpy())
-            logger['accuracy'].append(accuracy)
-
-        # logger['total_loss'].append(total_loss / num_batches)
-        logger['total_accuracy'].append(total_acc / num_batches)
-
-
 if __name__ == '__main__':
+
     device = torch.device(
         'cuda' if torch.cuda.is_available() else
         'mps' if torch.backends.mps.is_available() else
@@ -81,7 +31,6 @@ if __name__ == '__main__':
     )
 
     # data loaders
-
     train_dataset = datasets.MNIST(
         root='data', download=True, train=True, transform=transforms.ToTensor())
     test_dataset = datasets.MNIST(
@@ -108,7 +57,7 @@ if __name__ == '__main__':
 
     logger = {'loss': [], 'total_loss': [], 'accuracy': [], 'total_accuracy': []}
 
-    train_dp_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, logger)
+    train_dp_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, device, logger)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
