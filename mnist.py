@@ -19,7 +19,7 @@ class LinearNet(nn.Module):
     Simple linear model with 1000 hidden units
     """
 
-    def __init__(self, in_features=784, hidden=100, num_classes=10):
+    def __init__(self, in_features=784, hidden=1000, num_classes=10):
         super().__init__()
         self.hidden = nn.Linear(in_features, hidden)
         self.fc = nn.Linear(hidden, num_classes)
@@ -31,7 +31,17 @@ class LinearNet(nn.Module):
         return x
 
 
-def run_mnist(num_epochs=20, lot_size=1000, lr=0.05, noise_scale=2, max_grad_norm=4, q=None, save_fig=False, device=None):
+@click.command()
+@click.option('--num-epochs', default=50, help='Number of epochs.')
+@click.option('--lot-size', default=2000, help='Lot size.')
+@click.option('--lr', default=0.05, help='Learning rate.')
+@click.option('--noise-scale', default=2, help='Noise scale.')
+@click.option('--max-grad-norm', default=4, help='Max gradient norm.')
+@click.option('--q', default=None, help='q ratio (use if not using lot-size).')
+@click.option('--hidden-size', default=1000, help='Hidden size.')
+@click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
+@click.option('--device', default=None, help='Device.')
+def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, save_fig, device):
     # set device
     device = torch.device(
         'cuda' if torch.cuda.is_available() else
@@ -73,7 +83,7 @@ def run_mnist(num_epochs=20, lot_size=1000, lr=0.05, noise_scale=2, max_grad_nor
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=lot_size, shuffle=False)
 
-    model = LinearNet(in_features=pca.n_components, hidden=100)
+    model = LinearNet(in_features=pca.n_components, hidden=hidden_size)
 
     # loss function
     criterion = nn.CrossEntropyLoss()
@@ -105,18 +115,5 @@ def run_mnist(num_epochs=20, lot_size=1000, lr=0.05, noise_scale=2, max_grad_nor
         fig.savefig('output/mnist.png', dpi=300, bbox_inches='tight')
 
 
-@click.command()
-@click.option('--num-epochs', default=50, help='Number of epochs.')
-@click.option('--lot-size', default=2000, help='Lot size.')
-@click.option('--lr', default=0.05, help='Learning rate.')
-@click.option('--noise-scale', default=2, help='Noise scale.')
-@click.option('--max-grad-norm', default=4, help='Max gradient norm.')
-@click.option('--q', default=None, help='q ratio (use if not using lot-size).')
-@click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
-@click.option('--device', default=None, help='Device.')
-def run_mnist_cmd(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, save_fig, device):
-    run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, save_fig, device)
-
-
 if __name__ == '__main__':
-    run_mnist_cmd()
+    run_mnist()
