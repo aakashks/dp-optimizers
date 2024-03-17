@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
+from torch.func import functional_call, vmap, grad
 
 from dp import optim
 
@@ -21,6 +22,18 @@ class LinearNet(nn.Module):
 
 
 def train_model(model, loss_func, optimizer, num_epochs, num_batches, train_loader, logger):
+    def compute_loss(params, buffers, sample, target):
+        batch = sample.unsqueeze(0)
+        targets = target.unsqueeze(0)
+
+        predictions = functional_call(model, (params, buffers), (batch,))
+        loss = loss_func(predictions, targets)
+        return loss
+
+    ft_compute_grad = grad(compute_loss)
+    ft_compute_sample_grad = vmap(ft_compute_grad, in_dims=(None, None, 0, 0))
+
+
     for epoch in range(num_epochs):
         t_loss = 0
         for i, (images, labels) in enumerate(train_loader):
@@ -34,7 +47,8 @@ def train_model(model, loss_func, optimizer, num_epochs, num_batches, train_load
 
             # backpropagation and optimization
             optimizer.zero_grad()
-            optimizer.step(loss)
+            ft_per_sample_grads = ft_compute_sample_grad(params, buffers, images, labels)
+            optimizer.step(ft_per_sample_grads)
 
             t_loss += loss.detach().cpu().numpy()
 
@@ -59,7 +73,7 @@ if __name__ == '__main__':
     test_dataset = datasets.MNIST(
         root='data', download=True, train=False, transform=transforms.ToTensor())
 
-    q = 0.01
+    q = None # 0.01
     lot_size = int(q * len(train_dataset)) if q is not None else 2000
 
     train_loader = torch.utils.data.DataLoader(
@@ -72,9 +86,11 @@ if __name__ == '__main__':
 
     lr = 1e-3
 
-    # do not reduce the loss by mean etc. and instead give the whole tensor
+    params = {k: v.detach() for k, v in model.named_parameters()}
+    buffers = {k: v.detach() for k, v in model.named_buffers()}
+
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    optimizer = optim.DPSGD(model.parameters(), lot_size, lr=lr)
 
     num_epochs = 4
     num_batches = len(train_loader)
