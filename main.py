@@ -21,7 +21,7 @@ class LinearNet(nn.Module):
         return x
 
 
-def train_model(model, loss_func, optimizer, num_epochs, num_batches, train_loader, logger):
+def train_dp_model(model, loss_func, optimizer, num_epochs, num_batches, train_loader, logger):
     def compute_loss(params, buffers, sample, target):
         batch = sample.unsqueeze(0)
         targets = target.unsqueeze(0)
@@ -90,14 +90,14 @@ if __name__ == '__main__':
     buffers = {k: v.detach() for k, v in model.named_buffers()}
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.DPSGD(model.parameters(), lot_size, lr=lr)
+    optimizer = optim.DPSGD(model.named_parameters(), lot_size, lr=lr, noise_scale=2, max_grad_norm=4)
 
     num_epochs = 4
     num_batches = len(train_loader)
 
     logger = {'loss': [], 'total_loss': []}
 
-    train_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, logger)
+    train_dp_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, logger)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
