@@ -2,7 +2,7 @@ from torch.func import functional_call, vmap, grad
 import torch
 
 
-def train_dp_model(model, loss_fn, optimizer, num_epochs, num_batches, train_loader, device, logger):
+def train_dp_model(model, loss_fn, optimizer, num_epochs, num_batches, train_loader, scheduler=None, device=torch.device('cpu'), logger=None):
     params = {k: v.detach() for k, v in model.named_parameters()}
     buffers = {k: v.detach() for k, v in model.named_buffers()}
 
@@ -49,5 +49,7 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, num_batches, train_loa
             # logger['loss'].append(loss.detach().cpu().numpy())
             logger['accuracy'].append(accuracy)
 
+        if scheduler is not None:
+            scheduler.step()
         # logger['total_loss'].append(total_loss / num_batches)
         logger['total_accuracy'].append(total_acc / num_batches)

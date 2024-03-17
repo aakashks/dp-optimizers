@@ -82,11 +82,13 @@ if __name__ == '__main__':
     # differentially private optimizer
     optimizer = optim.DPSGD(model.named_parameters(), lot_size, lr=lr, noise_scale=2, max_grad_norm=4)
 
+    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=2, total_iters=10)
+
     num_batches = len(train_loader)
 
     logger = {'loss': [], 'total_loss': [], 'accuracy': [], 'total_accuracy': []}
 
-    train_dp_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, device, logger)
+    train_dp_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, scheduler, device, logger)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
