@@ -31,16 +31,7 @@ class LinearNet(nn.Module):
         return x
 
 
-@click.command()
-@click.option('--num-epochs', default=2, help='Number of epochs.')
-@click.option('--lot-size', default=1000, help='Lot size.')
-@click.option('--lr', default=0.001, help='Learning rate.')
-@click.option('--noise-scale', default=2, help='Noise scale.')
-@click.option('--max-grad-norm', default=4, help='Max gradient norm.')
-@click.option('--q', default=None, help='q ratio (use if not using lot-size).')
-@click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
-@click.option('--device', default=None, help='Device.')
-def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, save_fig, device):
+def run_mnist(num_epochs=20, lot_size=1000, lr=0.05, noise_scale=2, max_grad_norm=4, q=None, save_fig=False, device=None):
     # set device
     device = torch.device(
         'cuda' if torch.cuda.is_available() else
@@ -114,5 +105,18 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, save_fig,
         fig.savefig('output/mnist.png', dpi=300, bbox_inches='tight')
 
 
+@click.command()
+@click.option('--num-epochs', default=50, help='Number of epochs.')
+@click.option('--lot-size', default=2000, help='Lot size.')
+@click.option('--lr', default=0.05, help='Learning rate.')
+@click.option('--noise-scale', default=2, help='Noise scale.')
+@click.option('--max-grad-norm', default=4, help='Max gradient norm.')
+@click.option('--q', default=None, help='q ratio (use if not using lot-size).')
+@click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
+@click.option('--device', default=None, help='Device.')
+def run_mnist_cmd(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, save_fig, device):
+    run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, save_fig, device)
+
+
 if __name__ == '__main__':
-    run_mnist()
+    run_mnist_cmd()
