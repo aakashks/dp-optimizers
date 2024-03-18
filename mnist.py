@@ -92,11 +92,9 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     optimizer = optim.DPSGD(model.named_parameters(), lot_size, lr=lr, noise_scale=noise_scale,
                             max_grad_norm=max_grad_norm)
 
-    num_batches = len(train_loader)
-
     logger = {'loss': [], 'total_loss': [], 'accuracy': [], 'total_accuracy': [], 'total_val_accuracy': []}
 
-    train_dp_model(model, criterion, optimizer, num_epochs, num_batches, train_loader, test_loader, device=device,
+    train_dp_model(model, criterion, optimizer, num_epochs, train_loader, test_loader, device=device,
                    logger=logger)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
