@@ -9,7 +9,6 @@ from torchvision import datasets, transforms
 
 import click
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 
 from dp import optim, train_dp_model
 
@@ -37,9 +36,9 @@ class LinearNet(nn.Module):
 @click.option('--lr', default=0.05, help='Learning rate.')
 @click.option('--noise-scale', default=2, help='Noise scale.')
 @click.option('--max-grad-norm', default=4, help='Max gradient norm.')
-@click.option('--q', default=None, help='q ratio (use if not using lot-size).')
+@click.option('--q', default=None, help='Sampling Probability (use if not using lot-size).')
 @click.option('--hidden-size', default=1000, help='Hidden size.')
-@click.option('--no-pca', is_flag=True, default=True, help='Do not apply pca to data before applying NN')
+@click.option('--no-pca', is_flag=True, default=True, help='Do not apply pca to data before applying NN.')
 @click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
 @click.option('--device', default=None, help='Device.')
 def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, no_pca, save_fig, device):
