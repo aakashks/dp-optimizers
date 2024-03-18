@@ -32,16 +32,17 @@ class LinearNet(nn.Module):
 
 
 @click.command()
-@click.option('--num-epochs', default=50, help='Number of epochs.')
-@click.option('--lot-size', default=2000, help='Lot size.')
+@click.option('--num-epochs', default=20, help='Number of epochs.')
+@click.option('--lot-size', default=600, help='Lot size.')
 @click.option('--lr', default=0.05, help='Learning rate.')
 @click.option('--noise-scale', default=2, help='Noise scale.')
 @click.option('--max-grad-norm', default=4, help='Max gradient norm.')
 @click.option('--q', default=None, help='q ratio (use if not using lot-size).')
 @click.option('--hidden-size', default=1000, help='Hidden size.')
+@click.option('--no-pca', is_flag=True, default=True, help='Do not apply pca to data before applying NN')
 @click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
 @click.option('--device', default=None, help='Device.')
-def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, save_fig, device):
+def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, no_pca, save_fig, device):
     # set device
     device = torch.device(
         'cuda' if torch.cuda.is_available() else
@@ -50,29 +51,30 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     ) if device is None else device
 
     # data loaders
-    train_data = datasets.MNIST(
+    train_dataset = datasets.MNIST(
         root='data', download=True, train=True, transform=transforms.ToTensor())
-    test_data = datasets.MNIST(
+    test_dataset = datasets.MNIST(
         root='data', download=True, train=False, transform=transforms.ToTensor())
 
-    # apply PCA to the dataset (as done in the paper)
-    X_train = train_data.train_data.numpy().reshape(len(train_data), -1)
-    X_test = test_data.test_data.numpy().reshape(len(test_data), -1)
+    if not no_pca:
+        # apply PCA to the dataset (as done in the paper)
+        X_train = train_dataset.train_data.reshape(len(train_dataset), -1)
+        X_test = test_dataset.test_data.reshape(len(test_dataset), -1)
 
-    pca = PCA(n_components=60)
+        A = torch.cat([X_train, X_test]).float()
+        pca_dim = 60
+        _, _, V = torch.pca_lowrank(A, q=pca_dim)
 
-    X_train_pca = pca.fit_transform(X_train)
-    X_test_pca = pca.transform(X_test)
+        res = torch.matmul(A, V)
 
-    # form tensors
-    X_train_pca_tensor = torch.from_numpy(X_train_pca).float()
-    X_test_pca_tensor = torch.from_numpy(X_test_pca).float()
-    y_train = torch.tensor(train_data.train_labels.numpy())
-    y_test = torch.tensor(test_data.test_labels.numpy())
+        X_train_pca_tensor = res[:60000]
+        X_test_pca_tensor = res[60000:]
+        y_train = train_dataset.targets
+        y_test = test_dataset.targets
 
-    # create torch datasets
-    train_dataset = TensorDataset(X_train_pca_tensor, y_train)
-    test_dataset = TensorDataset(X_test_pca_tensor, y_test)
+        # create torch datasets
+        train_dataset = TensorDataset(X_train_pca_tensor, y_train)
+        test_dataset = TensorDataset(X_test_pca_tensor, y_test)
 
     # training settings
     lot_size = lot_size if q is None else int(q * len(train_dataset))  # (L)
@@ -83,7 +85,7 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=lot_size, shuffle=False)
 
-    model = LinearNet(in_features=pca.n_components, hidden=hidden_size)
+    model = LinearNet(in_features=784 if no_pca else pca_dim, hidden=hidden_size)
 
     # loss function
     criterion = nn.CrossEntropyLoss()
