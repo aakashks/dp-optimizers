@@ -47,6 +47,6 @@ class DPSGD(DPOptimizer):
     def step(self, per_sample_grads: Dict[str, torch.Tensor]):
         clipped_grads = self._average_and_clip_grads(per_sample_grads)
         for name, param in self.named_params.items():
-            if param.requires_grad and param.grad is not None:
+            if param.requires_grad:
                 g = self._add_noise(clipped_grads[name])
                 param.copy_((1 - self.wd) * param.detach() - self.lr * g)

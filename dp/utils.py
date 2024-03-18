@@ -27,7 +27,6 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
         total_val_acc = 0
 
         for i, (images, labels) in enumerate(train_loader):
-            model.train()
             # move images and labels to device
             images = images.to(device)
             labels = labels.to(device)
@@ -44,6 +43,8 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
                 _, predicted = torch.max(output, 1)
                 accuracy = (predicted == labels).sum().item() / labels.size(0)
                 total_acc += accuracy
+
+            model.train()
 
             # backpropagation and optimization
             optimizer.zero_grad()
