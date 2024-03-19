@@ -59,8 +59,8 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
 
     if not no_pca:
         # apply PCA to the dataset (as done in the paper)
-        X_train = train_dataset.train_data.reshape(len(train_dataset), -1)
-        X_test = test_dataset.test_data.reshape(len(test_dataset), -1)
+        X_train = train_dataset.data.reshape(len(train_dataset), -1)
+        X_test = test_dataset.data.reshape(len(test_dataset), -1)
 
         A = torch.cat([X_train, X_test]).float()
         pca_dim = 60
