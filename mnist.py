@@ -31,10 +31,10 @@ class LinearNet(nn.Module):
 
 
 @click.command()
-@click.option('--num-epochs', default=20, help='Number of epochs.')
-@click.option('--lot-size', default=600, help='Lot size.')
+@click.option('--num-epochs', default=5, help='Number of epochs.')
+@click.option('--lot-size', default=200, help='Lot size.')
 @click.option('--lr', default=0.05, help='Learning rate.')
-@click.option('--noise-scale', default=2, help='Noise scale.')
+@click.option('--noise-scale', default=4, help='Noise scale.')
 @click.option('--max-grad-norm', default=4, help='Max gradient norm.')
 @click.option('--q', default=None, help='Sampling Probability (use if not using lot-size).')
 @click.option('--hidden-size', default=1000, help='Hidden size.')
@@ -92,8 +92,8 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     criterion = nn.CrossEntropyLoss()
 
     # differentially private optimizer
-    optimizer = optim.DPSGD(model.named_parameters(), lot_size, lr=lr, noise_scale=noise_scale,
-                            max_grad_norm=max_grad_norm)
+    optimizer = optim.PIAdam(model.named_parameters(), lot_size, noise_scale=noise_scale,
+                             max_grad_norm=max_grad_norm)
 
     logger = {'loss': [], 'total_loss': [], 'accuracy': [], 'total_accuracy': [], 'total_val_accuracy': []}
 
