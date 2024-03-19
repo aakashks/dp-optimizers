@@ -7,20 +7,25 @@ from torch.optim import Optimizer
 
 class DPOptimizer(Optimizer):
     """
-    Base class for all optimizers
+    Base class for all differential privacy based optimizers
     Note that this is an abstract class
 
-    Does Gradient Clipping (with per sample gradients)
+    Implements Gradient Clipping (with per sample gradients)
     """
 
     def __init__(self, named_params, lr, max_grad_norm) -> None:
         self.named_params: Dict[str, torch.Tensor] = dict(named_params)
         super().__init__(self.named_params.values(), {})
         self.lr = lr
-        self.max_grad_norm = max_grad_norm
+        self.max_grad_norm = max_grad_norm  # C
 
     @torch.no_grad()
     def _average_and_clip_grads(self, per_sample_grads: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """
+        Averages the per sample gradients and clips them to preserve differential privacy
+        :param per_sample_grads: gradients for each sample of the lot (batch)
+        :return: clipped and averaged gradients
+        """
         new_grads = {
             name: (
                     grad / max(1, torch.norm(grad) / self.max_grad_norm)
@@ -34,14 +39,23 @@ class DPOptimizer(Optimizer):
 class DPSGD(DPOptimizer):
     """
     Differentiable Private Stochastic Gradient Descent
+
+    as described in the paper:
+    Abadi, Martín, Andy Chu, Ian Goodfellow, H. Brendan McMahan, Ilya Mironov, Kunal Talwar, and Li Zhang.
+    “Deep Learning with Differential Privacy.”
+    In Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security, 308–18, 2016.
+    https://doi.org/10.1145/2976749.2978318.
     """
 
     def __init__(self, named_params, lot_size, lr=1e-3, noise_scale=4, max_grad_norm=4, weight_decay=0.) -> None:
         super().__init__(named_params, lr, max_grad_norm)
-        self.noise_std = noise_scale * max_grad_norm / lot_size
+        self.noise_std = noise_scale * max_grad_norm / lot_size  # standard deviation of the gaussian noise added to the gradients
         self.wd = weight_decay
 
     def _add_noise(self, grad: torch.Tensor) -> torch.Tensor:
+        """
+        adds gaussian noise to the gradients
+        """
         return grad + torch.normal(0, self.noise_std, grad.shape, device=grad.device)
 
     @torch.no_grad()
@@ -66,7 +80,7 @@ class PIGDO(DPOptimizer):
 
     def __init__(self, named_params, lot_size, lr, betas, noise_scale, max_grad_norm, weight_decay, eps) -> None:
         super().__init__(named_params, lr, max_grad_norm)
-        self.noise_std = noise_scale * max_grad_norm / lot_size
+        self.noise_std = noise_scale * max_grad_norm / lot_size  # standard deviation of the gaussian noise added to the gradients
         self.beta1, self.beta2 = betas
         self.wd = weight_decay
         self.eps = eps
@@ -75,8 +89,8 @@ class PIGDO(DPOptimizer):
 
         # state dict to keep track of the moving averages / previous gradients
         for name, param in self.named_params.items():
-            self.state[name]['exp_avg'] = torch.zeros_like(param)
-            self.state[name]['exp_avg_sq'] = torch.zeros_like(param)
+            self.state[name]['exp_avg'] = torch.zeros_like(param)  # f as in the paper
+            self.state[name]['exp_avg_sq'] = torch.zeros_like(param)  # s as in the paper
 
     def _add_noise(self, grad: torch.Tensor) -> torch.Tensor:
         """

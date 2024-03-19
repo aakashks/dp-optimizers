@@ -7,20 +7,29 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
     len_train_loader = len(train_loader)
     len_val_loader = len(val_loader)
 
+    # compute per-sample-gradients efficiently by using function transforms
+
+    # extract the state from model
+    # detach as we won't use torch.autograd / Tensor.backward()
     params = {k: v.detach() for k, v in model.named_parameters()}
     buffers = {k: v.detach() for k, v in model.named_buffers()}
 
+    # function to compute the loss for each sample
     def compute_loss(params, buffers, sample, target):
         batch = sample.unsqueeze(0)
         targets = target.unsqueeze(0)
 
+        # treat nn.Module as a function
         predictions = functional_call(model, (params, buffers), (batch,))
         loss = loss_fn(predictions, targets)
         return loss
 
+    # grad transform to create a function that computes gradient with respect to the first argument of compute_loss
     ft_compute_grad = grad(compute_loss)
+    # use vmap to vectorize the function over the whole batch of samples
     ft_compute_sample_grad = vmap(ft_compute_grad, in_dims=(None, None, 0, 0))
 
+    # training loop
     for epoch in range(num_epochs):
         total_loss = 0
         total_acc = 0
@@ -33,7 +42,6 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
             labels = labels.to(device)
 
             with torch.no_grad():
-                model.eval()
                 # forward pass
                 output = model(images)
                 # storing loss
