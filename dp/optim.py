@@ -80,7 +80,7 @@ class PIGDO(DPOptimizer):
 
     def __init__(self, named_params, lot_size, lr, betas, noise_scale, max_grad_norm, weight_decay, eps) -> None:
         super().__init__(named_params, lr, max_grad_norm)
-        self.noise_std = noise_scale * max_grad_norm / lot_size  # standard deviation of the gaussian noise added to the gradients
+        self.noise_std = noise_scale * max_grad_norm  # standard deviation of the gaussian noise added to the gradients
         self.beta1, self.beta2 = betas
         self.wd = weight_decay
         self.eps = eps
