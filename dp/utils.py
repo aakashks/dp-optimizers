@@ -3,7 +3,6 @@ import torch
 
 
 def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_loader, scheduler=None, device=torch.device('cpu'), logger=None):
-    model.to(device)
     len_train_loader = len(train_loader)
     len_val_loader = len(val_loader)
 

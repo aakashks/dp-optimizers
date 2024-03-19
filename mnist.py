@@ -47,7 +47,9 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
         'cuda' if torch.cuda.is_available() else
         'mps' if torch.backends.mps.is_available() else
         'cpu'
-    ) if device is None else device
+    ) if device is None else torch.device(device)
+
+    print(f'Using device: {device}')
 
     # data loaders
     train_dataset = datasets.MNIST(
@@ -85,7 +87,7 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
         test_dataset, batch_size=lot_size, shuffle=False)
 
     model = LinearNet(in_features=784 if no_pca else pca_dim, hidden=hidden_size)
-
+    model.to(device)
     # loss function
     criterion = nn.CrossEntropyLoss()
 
