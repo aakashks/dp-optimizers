@@ -2,7 +2,8 @@ from torch.func import functional_call, vmap, grad
 import torch
 
 
-def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_loader, scheduler=None, device=torch.device('cpu'), logger=None):
+def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_loader, device=torch.device('cpu'), logger=None):
+    # get length of train and val loaders
     len_train_loader = len(train_loader)
     len_val_loader = len(val_loader)
 
@@ -25,6 +26,7 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
         total_acc = 0
         total_val_acc = 0
 
+        model.train()
         for i, (images, labels) in enumerate(train_loader):
             # move images and labels to device
             images = images.to(device)
@@ -43,9 +45,7 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
                 accuracy = (predicted == labels).sum().item() / labels.size(0)
                 total_acc += accuracy
 
-            model.train()
-
-            # backpropagation and optimization
+            # optimization step
             optimizer.zero_grad()
             ft_per_sample_grads = ft_compute_sample_grad(params, buffers, images, labels)
             optimizer.step(ft_per_sample_grads)
@@ -67,9 +67,6 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
                 _, val_predicted = torch.max(val_output, 1)
                 val_accuracy = (val_predicted == val_labels.to(device)).sum().item() / val_labels.size(0)
                 total_val_acc += val_accuracy
-
-        if scheduler is not None:
-            scheduler.step()
 
         # logger['total_loss'].append(total_loss / num_batches)
         logger['total_accuracy'].append(total_acc / len_train_loader)
