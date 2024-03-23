@@ -40,6 +40,8 @@ class DPSGD(DPOptimizer):
     """
     Differentiable Private Stochastic Gradient Descent
 
+    This is the same as NoisySGD except of poisson sampling of the lot (handled in data loader) and GDP accounting
+
     as described in the paper:
     Abadi, Martín, Andy Chu, Ian Goodfellow, H. Brendan McMahan, Ilya Mironov, Kunal Talwar, and Li Zhang.
     “Deep Learning with Differential Privacy.”
@@ -67,20 +69,10 @@ class DPSGD(DPOptimizer):
                 param.copy_((1 - self.wd) * param.detach() - self.lr * g)
 
 
-class PIGDO(DPOptimizer):
-    """
-    Perturbed Iterative Gradient Descent Optimizer
-    Abstract class for Differential Privacy GDO Algorithms (Adagrad, RMSprop, Adam)
-
-    as described in the paper:
-    Ding, Xiaofeng, Lin Chen, Pan Zhou, Wenbin Jiang, and Hai Jin.
-    “Differentially Private Deep Learning with Iterative Gradient Descent Optimization.”
-    ACM/IMS Transactions on Data Science 2, no. 4 (November 30, 2021): 1–27. https://doi.org/10.1145/3491254.
-    """
-
+class GDPOptimizer(DPOptimizer):
     def __init__(self, named_params, lot_size, lr, betas, noise_scale, max_grad_norm, weight_decay, eps) -> None:
         super().__init__(named_params, lr, max_grad_norm)
-        self.noise_std = noise_scale * max_grad_norm  # standard deviation of the gaussian noise added to the gradients
+        self.noise_std = noise_scale * max_grad_norm / lot_size  # standard deviation of the gaussian noise added to the gradients
         self.beta1, self.beta2 = betas
         self.wd = weight_decay
         self.eps = eps
@@ -128,6 +120,50 @@ class PIGDO(DPOptimizer):
 
                 # update the parameters
                 param.copy_((1 - self.wd) * param.detach() - self.lr * g)
+
+
+class NoisyAdam(GDPOptimizer):
+    """
+    Noisy Adam Optimizer
+
+    Note that you need to use poisson sampling in the data loader and GDP accounting
+
+    as described in the paper:
+    Bu, Zhiqi, Jinshuo Dong, Qi Long, and Weijie J. Su.
+    “Deep Learning with Gaussian Differential Privacy.”
+    arXiv, July 22, 2020. https://doi.org/10.48550/arXiv.1911.11607.
+    """
+    def __init__(self, named_params, lot_size, lr=1e-3, betas=(0.9, 0.999), noise_scale=4, max_grad_norm=4,
+                 weight_decay=0., eps=1e-8):
+        super().__init__(named_params, lot_size, lr, betas, noise_scale, max_grad_norm, weight_decay, eps)
+
+    def _gdo_rule(self, state: Dict[str, torch.Tensor], grad: torch.Tensor) -> torch.Tensor:
+        state['exp_avg'].mul_(self.beta1).add_(grad, alpha=1 - self.beta1)
+        state['exp_avg_sq'].mul_(self.beta2).add_(grad.square(), alpha=1 - self.beta2)
+
+        bias_correction1 = 1 - self.beta1 ** (self.t + 1)
+        exp_avg_hat = state['exp_avg'] / bias_correction1
+
+        bias_correction2 = 1 - self.beta2 ** (self.t + 1)
+        exp_avg_sq_hat = state['exp_avg_sq'] / bias_correction2
+
+        grad_hat = exp_avg_hat / (exp_avg_sq_hat.sqrt() + self.eps)
+        return grad_hat
+
+
+class PIGDO(GDPOptimizer):
+    """
+    Perturbed Iterative Gradient Descent Optimizer
+    Abstract class for Differential Privacy GDO Algorithms (Adagrad, RMSprop, Adam)
+
+    as described in the paper:
+    Ding, Xiaofeng, Lin Chen, Pan Zhou, Wenbin Jiang, and Hai Jin.
+    “Differentially Private Deep Learning with Iterative Gradient Descent Optimization.”
+    ACM/IMS Transactions on Data Science 2, no. 4 (November 30, 2021): 1–27. https://doi.org/10.1145/3491254.
+    """
+    def __init__(self, named_params, lot_size, lr, betas, noise_scale, max_grad_norm, weight_decay, eps) -> None:
+        super().__init__(named_params, lot_size, lr, betas, noise_scale, max_grad_norm, weight_decay, eps)
+        self.noise_std = noise_scale * max_grad_norm
 
 
 class PIAdagrad(PIGDO):
