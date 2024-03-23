@@ -89,4 +89,4 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
             logger['epsilon'].append(eps)
 
     if verbose > 0 and accountant is not None:
-        print(f"epochs: {num_epochs} -> final test accuracy: {logger['total_val_accuracy'][-1]:.4f}, final epsilon: {logger['epsilon'][-1]}:.2f")
+        print(f"epochs: {num_epochs} -> final test accuracy: {logger['total_val_accuracy'][-1]:.4f}, final epsilon: {logger['epsilon'][-1]:.2f}")
