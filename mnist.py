@@ -10,7 +10,7 @@ from torchvision import datasets, transforms
 import click
 import matplotlib.pyplot as plt
 
-from dp import optim, train_dp_model
+from dp import optim, train_dp_model, accountants
 
 
 class LinearNet(nn.Module):
@@ -30,6 +30,20 @@ class LinearNet(nn.Module):
         return x
 
 
+class ConvNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.fc1 = nn.Linear(9816, num_classes)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = self.fc1(x.flatten(start_dim=1))
+        return x
+
+
 @click.command()
 @click.option('--num-epochs', default=5, help='Number of epochs.')
 @click.option('--lot-size', default=200, help='Lot size.')
@@ -38,7 +52,7 @@ class LinearNet(nn.Module):
 @click.option('--max-grad-norm', default=4, help='Max gradient norm.')
 @click.option('--q', default=None, help='Sampling Probability (use if not using lot-size).')
 @click.option('--hidden-size', default=1000, help='Hidden size.')
-@click.option('--no-pca', is_flag=True, default=True, help='Do not apply pca to data before applying NN.')
+@click.option('--no-pca', is_flag=True, default=False, help='Do not apply pca to data before applying NN.')
 @click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
 @click.option('--device', default=None, help='Device.')
 def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, no_pca, save_fig, device):
@@ -86,8 +100,8 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=lot_size, shuffle=False)
 
-    model = LinearNet(in_features=784 if no_pca else pca_dim, hidden=hidden_size)
-    model.to(device)
+    model = LinearNet(in_features=784 if no_pca else pca_dim, hidden=hidden_size).to(device)
+
     # loss function
     criterion = nn.CrossEntropyLoss()
 
@@ -95,10 +109,12 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     optimizer = optim.PIAdam(model.named_parameters(), lot_size, noise_scale=noise_scale,
                              max_grad_norm=max_grad_norm)
 
-    logger = {'loss': [], 'total_loss': [], 'accuracy': [], 'total_accuracy': [], 'total_val_accuracy': []}
+    accountant = accountants.ModifiedMomentsAccountant(noise_scale, q=lot_size / len(train_dataset))
+
+    logger = {'loss': [], 'total_loss': [], 'accuracy': [], 'total_accuracy': [], 'total_val_accuracy': [], 'epsilon': []}
 
     train_dp_model(model, criterion, optimizer, num_epochs, train_loader, test_loader, device=device,
-                   logger=logger)
+                   logger=logger, accountant=accountant, verbose=2)
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
