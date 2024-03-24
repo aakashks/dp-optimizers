@@ -54,6 +54,12 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
                 accuracy = (predicted == labels).sum().item() / labels.size(0)
                 total_acc += accuracy
 
+                if epoch == 0 and i == 0:
+                    if accountant is not None:
+                        logger['epsilon'].append(0)
+
+                    logger['total_accuracy'].append(accuracy)
+
             # optimization step
             optimizer.zero_grad()
             per_sample_grads = compute_sample_grad(model_params, model_buffers, images, labels)
@@ -80,6 +86,9 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
                 val_accuracy = (val_predicted == val_labels.to(device)).sum().item() / val_labels.size(0)
                 total_val_acc += val_accuracy
 
+                if epoch == 0 and i == 0:
+                    logger['total_val_accuracy'].append(val_accuracy)
+
         # logger['total_loss'].append(total_loss / len_train_loader)
         logger['total_accuracy'].append(total_acc / len_train_loader)
         logger['total_val_accuracy'].append(total_val_acc / len_val_loader)
@@ -89,4 +98,4 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
             logger['epsilon'].append(eps)
 
     if verbose > 0 and accountant is not None:
-        print(f"epochs: {num_epochs} -> final test accuracy: {logger['total_val_accuracy'][-1]:.4f}, final epsilon: {logger['epsilon'][-1]:.2f}")
+        print(f"{optimizer.__class__.__name__} run {num_epochs} epochs -> final test accuracy: {logger['total_val_accuracy'][-1]:.4f}, final epsilon: {logger['epsilon'][-1]:.2f} by {accountant.__class__.__name__}")

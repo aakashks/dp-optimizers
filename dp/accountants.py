@@ -3,7 +3,7 @@ from abc import abstractmethod
 import torch
 
 
-class MomentsAccountant:
+class Accountant:
     def __init__(self, sigma, q, delta):
         self.sigma = sigma
         self.q = q
@@ -24,7 +24,7 @@ class MomentsAccountant:
         raise NotImplementedError
 
 
-class ModifiedMomentsAccountant(MomentsAccountant):
+class ModifiedMomentsAccountant(Accountant):
     """
     Computes epsilon using the modified moments accountant method.
 
