@@ -20,14 +20,14 @@ def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_load
         inputs = inputs.unsqueeze(0)
         labels = labels.unsqueeze(0)
 
-        # treat nn.Module as a function
+        # use function call to treat nn.Module as a function
         predictions = functional_call(model, (params, buffers), (inputs,))
         loss = loss_fn(predictions, labels)
         return loss
 
-    # grad transform to create a function that computes gradient with respect to the first argument of compute_loss
+    # grad transform to make a function that computes gradient of only the first arg of compte_loss
     compute_grad = grad(compute_loss)
-    # use vmap to vectorize the function over the whole batch of samples
+    # use vmap to vectorize the function over the whole batch of image samples
     compute_sample_grad = vmap(compute_grad, in_dims=(None, None, 0, 0))
 
     # training loop
