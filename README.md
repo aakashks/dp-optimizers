@@ -16,16 +16,18 @@ Abadi et al. introduced Differentially Private Stochastic Gradient Descent (DP -
 
 Ding et al. introduces perturbed gradients in optimizers like Adagrad, RMSprop and Adam. Gaussian noise is added to the clipped gradients in each iteration of the optimizer, thus ensuring $(\epsilon , \delta)$-differential privacy.
 
+Also implements the privacy accountants of both the papers which keep track of the privacy budget ($\epsilon$) spent over each iteration of the training process.
+
 ## Setup
 
 use `pip install -r requirements.txt` to install the required packages. Python 3.11 is required.
 
 ## References
 
-Cynthia Dwork and Aaron Roth, “The Algorithmic Foundations of Differential Privacy,” Foundations and Trends in Theoretical Computer Science 9, no. 3-4 (January 1, 2013): 211–407, https://doi.org/10.1561/0400000042.
-
 Abadi, Martín, Andy Chu, Ian Goodfellow, H. Brendan McMahan, Ilya Mironov, Kunal Talwar, and Li Zhang. “Deep Learning with Differential Privacy.” In Proceedings of the 2016 ACM SIGSAC Conference on Computer and Communications Security, 308–18, 2016. https://doi.org/10.1145/2976749.2978318.  
   
 Ding, Xiaofeng, Lin Chen, Pan Zhou, Wenbin Jiang, and Hai Jin. “Differentially Private Deep Learning with Iterative Gradient Descent Optimization.” ACM/IMS Transactions on Data Science 2, no. 4 (November 30, 2021): 1–27. https://doi.org/10.1145/3491254.  
   
 “Per-Sample-Gradients — PyTorch Tutorials 2.2.1+Cu121 Documentation,” Pytorch.org, 2024, https://pytorch.org/tutorials/intermediate/per_sample_grads.html.
+
+Cynthia Dwork and Aaron Roth, “The Algorithmic Foundations of Differential Privacy,” Foundations and Trends in Theoretical Computer Science 9, no. 3-4 (January 1, 2013): 211–407, https://doi.org/10.1561/0400000042.
