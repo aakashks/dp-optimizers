@@ -4,6 +4,14 @@ import torch
 
 def train_dp_model(model, loss_fn, optimizer, num_epochs, train_loader, val_loader, device=torch.device('cpu'),
                    logger=None, accountant=None, verbose=1):
+    """
+    Train a differentially private model using PyTorch.
+
+    per sample gradients are based upon the reference:
+    “Per-Sample-Gradients — PyTorch Tutorials 2.2.1+Cu121 Documentation,”
+    Pytorch.org, 2024, https://pytorch.org/tutorials/intermediate/per_sample_grads.html.
+
+    """
     # get length of train and val loaders
     len_train_loader = len(train_loader)
     len_val_loader = len(val_loader)

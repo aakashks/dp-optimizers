@@ -30,24 +30,11 @@ class LinearNet(nn.Module):
         return x
 
 
-class ConvNet(nn.Module):
-    def __init__(self, num_classes=10):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.fc1 = nn.Linear(9816, num_classes)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = self.fc1(x.flatten(start_dim=1))
-        return x
-
-
 @click.command()
-@click.option('--num-epochs', default=5, help='Number of epochs.')
-@click.option('--lot-size', default=200, help='Lot size.')
-@click.option('--lr', default=0.05, help='Learning rate.')
+@click.option('--dataset', default='mnist', help='Dataset to use.')
+@click.option('--num-epochs', default=10, help='Number of epochs.')
+@click.option('--lot-size', default=600, help='Lot size.')
+@click.option('--lr', default=0.0001, help='Learning rate.')
 @click.option('--noise-scale', default=4, help='Noise scale.')
 @click.option('--max-grad-norm', default=4, help='Max gradient norm.')
 @click.option('--q', default=None, help='Sampling Probability (use if not using lot-size).')
@@ -55,7 +42,7 @@ class ConvNet(nn.Module):
 @click.option('--no-pca', is_flag=True, default=False, help='Do not apply pca to data before applying NN.')
 @click.option('--save-fig', is_flag=True, default=False, help='Save figure.')
 @click.option('--device', default=None, help='Device.')
-def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, no_pca, save_fig, device):
+def run_mnist(dataset, num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_size, no_pca, save_fig, device):
     # set device
     device = torch.device(
         'cuda' if torch.cuda.is_available() else
@@ -66,10 +53,17 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     print(f'Using device: {device}')
 
     # data loaders
-    train_dataset = datasets.MNIST(
-        root='data', download=True, train=True, transform=transforms.ToTensor())
-    test_dataset = datasets.MNIST(
-        root='data', download=True, train=False, transform=transforms.ToTensor())
+    if dataset == 'mnist':
+        train_dataset = datasets.MNIST(
+            root='data', download=True, train=True, transform=transforms.ToTensor())
+        test_dataset = datasets.MNIST(
+            root='data', download=True, train=False, transform=transforms.ToTensor())
+
+    else:
+        train_dataset = datasets.FashionMNIST(
+            root='data', download=True, train=True, transform=transforms.ToTensor())
+        test_dataset = datasets.FashionMNIST(
+            root='data', download=True, train=False, transform=transforms.ToTensor())
 
     if not no_pca:
         # apply PCA to the dataset (as done in the paper)
@@ -106,7 +100,7 @@ def run_mnist(num_epochs, lot_size, lr, noise_scale, max_grad_norm, q, hidden_si
     criterion = nn.CrossEntropyLoss()
 
     # differentially private optimizer
-    optimizer = optim.PIAdam(model.named_parameters(), lot_size, noise_scale=noise_scale,
+    optimizer = optim.PIAdam(model.named_parameters(), lot_size, lr=lr, noise_scale=noise_scale,
                              max_grad_norm=max_grad_norm)
 
     accountant = accountants.ModifiedMomentsAccountant(noise_scale, q=lot_size / len(train_dataset))
