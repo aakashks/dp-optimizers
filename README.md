@@ -33,11 +33,11 @@ Experiments were conducted on MNIST and fashionMNIST datasets with the default h
 lot size 600, max gradient norm 4 and total epochs 100.
 A linear model with a hidden layer of 1000 neurons was the classifier. 
 
-The variation of testing accuracy with different noise scales (for all optimizers) is as in the figure:
+The testing accuracies on MNIST data by using different DPOptimizers with different noise scales vary as shown in the figure:
 
 <img alt="adam_dpsgd.png" height="400" src="results/adam_dpsgd.png"/>
 
-How the privacy budget is spent over the training process is shown in the figure (as calculated by 2 different optimizers):
+How the privacy budget is spent over the training process is shown in the figure (as calculated by 2 different accountants):
 
 <img alt="img.png" height="400" src="results/accountants.png"/>
 
