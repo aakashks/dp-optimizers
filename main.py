@@ -10,7 +10,7 @@ from torchvision import datasets, transforms
 import click
 import matplotlib.pyplot as plt
 
-from dp import optim, train_dp_model, accountants
+from dpgdo import optim, train_dp_model, accountants
 
 
 class LinearNet(nn.Module):
